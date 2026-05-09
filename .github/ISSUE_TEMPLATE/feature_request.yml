@@ -1,0 +1,72 @@
+name: Feature request
+description: Suggest a target, dependency, or workflow improvement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep requests tied to Statix's scope: reproducible Rust musl builds with native static dependencies.
+        For a concrete crate or project that fails today, use the build failure template.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What musl cross-compilation problem would this solve?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Request area
+      options:
+        - Native dependency support
+        - Target triple support
+        - Image reproducibility
+        - Image size or build time
+        - Validation coverage
+        - Documentation
+        - Release or publishing workflow
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the smallest change that would solve the problem.
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Target triple
+      placeholder: x86_64-unknown-linux-musl
+  - type: input
+    id: dependency
+    attributes:
+      label: Native dependency or crate
+      description: If applicable, name the crate, C/C++ library, or build tool involved.
+      placeholder: openssl-sys, rocksdb, cmake, libclang
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Mention workarounds, existing images, or project-local fixes you tried.
+  - type: textarea
+    id: validation
+    attributes:
+      label: How should this be validated?
+      description: Include a real project, fixture, command, or binary verification path.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submit checks
+      options:
+        - label: This request is about Rust musl cross-compilation or static native dependencies.
+          required: true
+        - label: I searched existing issues before opening this request.
+          required: true

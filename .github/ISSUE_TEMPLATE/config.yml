@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/minionsx-ai/Statix/security/policy
+    about: Do not open public issues for vulnerabilities. Use the security policy instead.
+  - name: Support guidance
+    url: https://github.com/minionsx-ai/Statix/blob/main/SUPPORT.md
+    about: Read support channels and required details before opening an issue.

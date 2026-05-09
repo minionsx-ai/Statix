@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Statix</title>
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Docker build environment for static musl Rust binaries with native C/C++ dependencies.">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="site.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="https://github.com/minionsx-ai/Statix">
+        <img src="logo.svg" alt="Statix" class="brand-mark">
+      </a>
+      <nav>
+        <a href="#status">Status</a>
+        <a href="#release">Release</a>
+        <a href="#validation">Validation</a>
+        <a href="why-statix.html">Notes</a>
+        <a href="#limits">Limits</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#links">Links</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Plain musl builds break when native crates get involved. Statix doesn't.</h1>
+        <p>
+          Statix is a Docker build environment that bundles the Rust toolchain,
+          musl GCC, static system libraries, CMake, and LLVM/libclang. It handles
+          Rust projects where native C/C++ crates make plain
+          <code>x86_64-unknown-linux-musl</code> builds unreliable.
+        </p>
+        <div class="hero-actions">
+          <a class="btn primary" href="https://github.com/minionsx-ai/Statix">Repository</a>
+          <a class="btn" href="https://github.com/minionsx-ai/Statix/releases/latest">Latest release</a>
+          <a class="btn" href="VALIDATION_TARGETS.md">Validation matrix</a>
+          <a class="btn" href="why-statix.html">Build notes</a>
+        </div>
+      </section>
+
+      <section id="status" class="section">
+        <h2>Public status</h2>
+        <!-- release-status:start -->
+        <p>
+          The source repository and project page are public. The GHCR image is still
+          treated as pending until the tag-driven release workflow finishes and the
+          package is pullable without maintainer credentials.
+        </p>
+        <dl class="status-grid">
+          <div>
+            <dt>Repository</dt>
+            <dd><span class="badge pass">public</span> <a href="https://github.com/minionsx-ai/Statix">minionsx-ai/Statix</a></dd>
+          </div>
+          <div>
+            <dt>Source release</dt>
+            <dd><span class="badge pass">latest</span> <a href="https://github.com/minionsx-ai/Statix/releases/tag/v0.1.0">v0.1.0</a></dd>
+          </div>
+          <div>
+            <dt>Checks</dt>
+            <dd><span class="badge pass">protected</span> <a href="https://github.com/minionsx-ai/Statix/actions/workflows/docker-check.yml">dockerfile-check</a></dd>
+          </div>
+          <div>
+            <dt>Container image</dt>
+            <dd><span class="badge pending">pending</span> GHCR public pull verification</dd>
+          </div>
+        </dl>
+        <!-- release-status:end -->
+      </section>
+
+      <section id="release" class="section">
+        <!-- release-quickstart:start -->
+        <h2>Quick start from source</h2>
+        <pre><code>git clone https://github.com/minionsx-ai/Statix.git
+cd Statix
+docker build -t statix:local .
+
+docker run --rm -it -v "$PWD:/workspace" -w /workspace \
+  statix:local
+
+cargo build --release --target x86_64-unknown-linux-musl</code></pre>
+        <dl class="meta">
+          <div>
+            <dt>Version</dt>
+            <dd><a href="https://github.com/minionsx-ai/Statix/releases/tag/v0.1.0">v0.1.0</a></dd>
+          </div>
+          <div>
+            <dt>Image</dt>
+            <dd><code>statix:local</code> until GHCR is public-pull verified</dd>
+          </div>
+          <div>
+            <dt>Digest</dt>
+            <dd>Published image digest pending release workflow completion.</dd>
+          </div>
+          <div>
+            <dt>Target</dt>
+            <dd><code>x86_64-unknown-linux-musl</code></dd>
+          </div>
+        </dl>
+        <!-- release-quickstart:end -->
+      </section>
+
+      <section id="validation" class="section">
+        <h2>Validation</h2>
+        <p>
+          The useful signal is not one large build. Statix tracks small
+          smoke fixtures and native dependency failures separately, then keeps
+          slower large workloads manual.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Track</th>
+                <th>Targets</th>
+                <th>Status</th>
+                <th>Why it exists</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>P0 smoke</td>
+                <td>hello-static, tokio-cli, reqwest-rustls, crypto-signing, rusqlite-bundled</td>
+                <td><span class="badge pass">runtime passed</span></td>
+                <td>Basic Rust, async, HTTPS, crypto, and bundled SQLite paths.</td>
+              </tr>
+              <tr>
+                <td>P1 native dependencies</td>
+                <td>openssl-sys-demo, rdkafka-vendored-ssl, rust-rocksdb-demo</td>
+                <td><span class="badge pass">runtime passed</span></td>
+                <td>OpenSSL, CMake, libclang, C++, librdkafka, and RocksDB behavior.</td>
+              </tr>
+              <tr>
+                <td>P2 database/runtime</td>
+                <td>diesel-sqlite, diesel-postgres</td>
+                <td><span class="badge pass">runtime passed</span></td>
+                <td>Runtime loading and static link behavior around SQLite and libpq.</td>
+              </tr>
+              <tr>
+                <td>Manual large workload</td>
+                <td>Optional snarkOS v4.6.3 run</td>
+                <td><span class="badge manual">manual, patched</span></td>
+                <td>Stress evidence for a large native-heavy Rust application; not an upstream support claim.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Image contents</h2>
+        <p>The default image favors a complete, conservative build path over small image size. CMake and LLVM/libclang are source-built on purpose.</p>
+        <dl class="contents">
+          <div>
+            <dt>Toolchain</dt>
+            <dd>Rust 1.95.0, musl 1.2.5, GCC 15.1.0, musl-cross-make.</dd>
+          </div>
+          <div>
+            <dt>Native libraries</dt>
+            <dd>Static zlib, libffi, ncurses, OpenSSL, curl, PostgreSQL/libpq.</dd>
+          </div>
+          <div>
+            <dt>Build tooling</dt>
+            <dd>CMake, LLVM/clang, libclang paths, pkg-config defaults, CA bundle settings.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section id="limits" class="section">
+        <h2>Known limits</h2>
+        <p>These are intentional boundaries for the current release line.</p>
+        <ul>
+          <li>Only <code>x86_64-unknown-linux-musl</code> is supported.</li>
+          <li>The image is large and slow to build because GCC, CMake, and LLVM are built from source.</li>
+          <li>Some upstream projects still need source-level musl compatibility patches.</li>
+          <li>Checksum coverage and SBOM output are planned for a later release.</li>
+        </ul>
+      </section>
+
+      <section id="roadmap" class="section">
+        <h2>Roadmap</h2>
+        <dl class="roadmap">
+          <div>
+            <dt>Done in v0.1</dt>
+            <dd>Baseline full-musl builder, public source release, smoke fixtures, and native dependency validation.</dd>
+          </div>
+          <div>
+            <dt>Next</dt>
+            <dd>GHCR public pull verification, source checksums, SBOM direction, digest pinning docs, and release-image hygiene.</dd>
+          </div>
+          <div>
+            <dt>Later</dt>
+            <dd>More crate recipes, additional failure-mode docs, and possible target or image variants.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section id="links" class="section">
+        <h2>Links</h2>
+        <ul class="link-list">
+          <li><a href="https://github.com/minionsx-ai/Statix/actions/workflows/docker-check.yml">Dockerfile checks</a></li>
+          <li><a href="https://github.com/minionsx-ai/Statix/actions/workflows/release.yml">Release workflow</a></li>
+          <li><a href="https://github.com/minionsx-ai/Statix/issues">Issues</a></li>
+          <li><a href="VALIDATION.md">Validation notes</a></li>
+          <li><a href="SUPPORT_MATRIX.md">Support matrix</a></li>
+          <li><a href="https://github.com/minionsx-ai/Statix/blob/main/ROADMAP.md">Roadmap</a></li>
+          <li><a href="why-statix.html">Build notes</a></li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <span>MIT licensed.</span>
+      <a href="https://github.com/minionsx-ai/Statix/blob/main/CONTRIBUTING.md">Contributing</a>
+      <a href="https://github.com/minionsx-ai/Statix/blob/main/SECURITY.md">Security</a>
+    </footer>
+  </body>
+</html>

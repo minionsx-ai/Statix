@@ -1,0 +1,8 @@
+[package]
+name = "rdkafka-vendored-ssl"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+rdkafka = { version = "0.36", features = ["cmake-build", "ssl-vendored"] }

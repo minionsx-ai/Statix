@@ -1,0 +1,85 @@
+name: Bug report
+description: Report a Statix script, documentation, or repository bug.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for bugs in Statix's repository, scripts, docs, or release metadata.
+        If a Rust project fails to build with the image, use the build failure template instead.
+        Do not report security vulnerabilities here; follow SECURITY.md.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is wrong, and what should happen instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Dockerfile or image build metadata
+        - Validation scripts
+        - Examples or validation fixtures
+        - Documentation
+        - GitHub workflow or repository metadata
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Statix version
+      description: Commit SHA, branch, tag, or image digest if relevant.
+      placeholder: main @ abc1234, v0.1.0, or sha256:...
+  - type: input
+    id: host
+    attributes:
+      label: Host environment
+      description: OS, CPU architecture, and container runtime version if relevant.
+      placeholder: macOS 15 arm64, Docker Desktop 4.x
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the exact command sequence when possible.
+      render: sh
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Relevant logs or output
+      description: Paste text output rather than screenshots when possible.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submit checks
+      options:
+        - label: I searched existing issues before opening this report.
+          required: true
+        - label: I have not included secrets, credentials, or private project data.
+          required: true

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Statix — Logo Preview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #F1F5F9; font-family: system-ui, -apple-system, sans-serif; padding: 48px; }
+    h1 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 3px; color: #94A3B8; margin-bottom: 40px; }
+
+    .section { margin-bottom: 56px; }
+    .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #64748B; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+    .label::after { content: ''; flex: 1; height: 1px; background: #CBD5E1; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .panel { border-radius: 12px; padding: 44px 48px; display: flex; align-items: center; }
+    .light { background: #fff; }
+    .dark  { background: #0D1117; }
+    .panel svg { display: block; }
+
+    .fav-row { display: flex; gap: 10px; }
+    .fav-box { border-radius: 10px; padding: 14px 18px; display: flex; align-items: flex-end; gap: 10px; }
+    .cap { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #94A3B8; margin-bottom: 8px; }
+
+    .bdg-row { display: flex; gap: 16px; align-items: center; }
+    .bdg-panel { border-radius: 10px; padding: 20px 24px; display: flex; gap: 12px; align-items: center; }
+
+    /* inline SVG CSS overrides */
+    .light .t { fill: #0F172A; }
+    .dark  .t { fill: #F1F5F9; }
+    .light .s { fill: #64748B; }
+    .dark  .s { fill: #94A3B8; }
+  </style>
+</head>
+<body>
+
+<h1>Statix — Direction A: Bold Wordmark</h1>
+
+<!-- ── Logo ── -->
+<div class="section">
+  <div class="label">Logo — light & dark backgrounds</div>
+  <div class="row">
+
+    <div class="panel light">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 92" width="380" height="92">
+        <text x="0" y="68"
+          font-family="system-ui,-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif"
+          font-size="62" font-weight="800" class="t">Stati<tspan fill="#CE422B">x</tspan></text>
+        <rect x="0" y="76" width="58" height="3.5" rx="1.75" fill="#CE422B"/>
+        <text x="2" y="90"
+          font-family="'Courier New',Menlo,Monaco,monospace"
+          font-size="11" letter-spacing="3.5" class="s">STATIC · MUSL · RUST</text>
+      </svg>
+    </div>
+
+    <div class="panel dark">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 92" width="380" height="92">
+        <text x="0" y="68"
+          font-family="system-ui,-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif"
+          font-size="62" font-weight="800" class="t">Stati<tspan fill="#CE422B">x</tspan></text>
+        <rect x="0" y="76" width="58" height="3.5" rx="1.75" fill="#CE422B"/>
+        <text x="2" y="90"
+          font-family="'Courier New',Menlo,Monaco,monospace"
+          font-size="11" letter-spacing="3.5" class="s">STATIC · MUSL · RUST</text>
+      </svg>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Favicon ── -->
+<div class="section">
+  <div class="label">Favicon — 48 / 32 / 20 px</div>
+  <div class="fav-row">
+
+    <div>
+      <p class="cap">Light bg</p>
+      <div class="fav-box light">
+        <svg width="48" height="48" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0F172A"/><text x="50" y="66" font-family="system-ui,-apple-system,sans-serif" font-size="52" font-weight="800" fill="#F1F5F9" text-anchor="middle">S<tspan fill="#CE422B">x</tspan></text><rect x="22" y="74" width="56" height="5" rx="2.5" fill="#CE422B"/></svg>
+        <svg width="32" height="32" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0F172A"/><text x="50" y="66" font-family="system-ui,-apple-system,sans-serif" font-size="52" font-weight="800" fill="#F1F5F9" text-anchor="middle">S<tspan fill="#CE422B">x</tspan></text><rect x="22" y="74" width="56" height="5" rx="2.5" fill="#CE422B"/></svg>
+        <svg width="20" height="20" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0F172A"/><text x="50" y="66" font-family="system-ui,-apple-system,sans-serif" font-size="52" font-weight="800" fill="#F1F5F9" text-anchor="middle">S<tspan fill="#CE422B">x</tspan></text><rect x="22" y="74" width="56" height="5" rx="2.5" fill="#CE422B"/></svg>
+      </div>
+    </div>
+
+    <div>
+      <p class="cap">Dark bg</p>
+      <div class="fav-box dark">
+        <svg width="48" height="48" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0F172A"/><text x="50" y="66" font-family="system-ui,-apple-system,sans-serif" font-size="52" font-weight="800" fill="#F1F5F9" text-anchor="middle">S<tspan fill="#CE422B">x</tspan></text><rect x="22" y="74" width="56" height="5" rx="2.5" fill="#CE422B"/></svg>
+        <svg width="32" height="32" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0F172A"/><text x="50" y="66" font-family="system-ui,-apple-system,sans-serif" font-size="52" font-weight="800" fill="#F1F5F9" text-anchor="middle">S<tspan fill="#CE422B">x</tspan></text><rect x="22" y="74" width="56" height="5" rx="2.5" fill="#CE422B"/></svg>
+        <svg width="20" height="20" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0F172A"/><text x="50" y="66" font-family="system-ui,-apple-system,sans-serif" font-size="52" font-weight="800" fill="#F1F5F9" text-anchor="middle">S<tspan fill="#CE422B">x</tspan></text><rect x="22" y="74" width="56" height="5" rx="2.5" fill="#CE422B"/></svg>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Badge ── -->
+<div class="section">
+  <div class="label">Badge</div>
+  <div class="fav-row">
+    <div>
+      <p class="cap">Rounded</p>
+      <div class="fav-box light" style="gap:0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 22" width="208" height="44">
+          <defs><clipPath id="c1"><rect width="104" height="22" rx="4"/></clipPath></defs>
+          <rect width="104" height="22" rx="4" fill="#1E293B"/>
+          <g clip-path="url(#c1)">
+            <rect width="30" height="22" fill="#CE422B"/>
+            <text x="15" y="15.5" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="800" fill="white" text-anchor="middle">Sx</text>
+            <rect x="30" width="1" height="22" fill="#0F172A" opacity="0.3"/>
+            <text x="68" y="15.5" font-family="system-ui,-apple-system,sans-serif" font-size="11.5" font-weight="700" fill="#F4F4F5" text-anchor="middle">Statix</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <p class="cap">Flat</p>
+      <div class="fav-box light" style="gap:0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 22" width="208" height="44">
+          <defs><clipPath id="c2"><rect width="104" height="22"/></clipPath></defs>
+          <rect width="104" height="22" fill="#1E293B"/>
+          <g clip-path="url(#c2)">
+            <rect width="30" height="22" fill="#CE422B"/>
+            <text x="15" y="15.5" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="800" fill="white" text-anchor="middle">Sx</text>
+            <rect x="30" width="1" height="22" fill="#0F172A" opacity="0.3"/>
+            <text x="68" y="15.5" font-family="system-ui,-apple-system,sans-serif" font-size="11.5" font-weight="700" fill="#F4F4F5" text-anchor="middle">Statix</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── In context: README ── -->
+<div class="section">
+  <div class="label">In context — GitHub README (dark)</div>
+  <div class="panel dark" style="flex-direction:column; align-items:flex-start; gap:20px; padding: 40px 48px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 92" width="340">
+      <text x="0" y="68" font-family="system-ui,-apple-system,sans-serif" font-size="62" font-weight="800" fill="#F1F5F9">Stati<tspan fill="#CE422B">x</tspan></text>
+      <rect x="0" y="76" width="58" height="3.5" rx="1.75" fill="#CE422B"/>
+      <text x="2" y="90" font-family="'Courier New',monospace" font-size="11" letter-spacing="3.5" fill="#94A3B8">STATIC · MUSL · RUST</text>
+    </svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 22" width="104" height="22">
+      <defs><clipPath id="c3"><rect width="104" height="22" rx="4"/></clipPath></defs>
+      <rect width="104" height="22" rx="4" fill="#1E293B"/>
+      <g clip-path="url(#c3)">
+        <rect width="30" height="22" fill="#CE422B"/>
+        <text x="15" y="15.5" font-family="system-ui,sans-serif" font-size="11" font-weight="800" fill="white" text-anchor="middle">Sx</text>
+        <rect x="30" width="1" height="22" fill="#0F172A" opacity="0.3"/>
+        <text x="68" y="15.5" font-family="system-ui,sans-serif" font-size="11.5" font-weight="700" fill="#F4F4F5" text-anchor="middle">Statix</text>
+      </g>
+    </svg>
+    <div style="color:#94A3B8; font-size:14px; line-height:1.7; max-width:560px; font-family:'Courier New',monospace">
+      <span style="color:#F1F5F9">Statix</span> is a Docker build environment for Rust projects<br>
+      that need fully static <code style="color:#CE422B">x86_64-unknown-linux-musl</code> binaries.
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

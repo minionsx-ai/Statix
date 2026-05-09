@@ -1,0 +1,94 @@
+name: Build failure
+description: Report a Rust project or native dependency that fails with Statix.
+title: "[Build failure]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when a Rust project, crate, or native dependency fails to build or run with Statix.
+        Paste text logs instead of screenshots. Include enough detail for maintainers to reproduce the same failure.
+        Do not report security vulnerabilities here; follow SECURITY.md.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What fails, and what did you expect Statix to handle?
+    validations:
+      required: true
+  - type: input
+    id: project
+    attributes:
+      label: Rust project or crate
+      description: Include repository URL and commit, crate name/version, or a minimal reproducer.
+      placeholder: https://github.com/example/project @ abc1234
+    validations:
+      required: true
+  - type: input
+    id: statix_version
+    attributes:
+      label: Statix version
+      description: Commit SHA, branch, tag, or image digest.
+      placeholder: main @ abc1234, v0.1.0, or sha256:...
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host environment
+      description: OS, CPU architecture, Docker or compatible runtime version, and buildx version if used.
+      placeholder: Ubuntu 24.04 amd64, Docker Engine 29.x, buildx 0.x
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Target triple
+      placeholder: x86_64-unknown-linux-musl
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command
+      description: Include the Docker build/run command and the cargo command that fails.
+      render: sh
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Relevant environment or build configuration
+      description: Include Cargo config, feature flags, build args, linker overrides, pkg-config variables, or custom Rust flags.
+      render: sh
+  - type: textarea
+    id: logs
+    attributes:
+      label: Failure logs
+      description: Paste the first failing command and the relevant compiler/linker/pkg-config output.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: upstream_context
+    attributes:
+      label: Upstream issue or known workaround
+      description: Link related upstream issues, docs, or workaround patches if they exist.
+  - type: textarea
+    id: binary_verification
+    attributes:
+      label: Binary verification output
+      description: If the build succeeds but runtime/static linking fails, include file, ldd, and runtime output.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submit checks
+      options:
+        - label: I searched existing Statix issues for the same failure.
+          required: true
+        - label: I included text logs instead of only screenshots.
+          required: true
+        - label: I have not included secrets, credentials, or private project data.
+          required: true

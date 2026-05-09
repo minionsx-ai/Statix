@@ -1,0 +1,43 @@
+name: Question
+description: Ask about supported targets, usage, validation, or release status.
+title: "[Question]: "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for support questions when GitHub Discussions are not enabled.
+        For a concrete build failure, use the build failure template so maintainers get enough reproduction detail.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to understand or decide?
+    validations:
+      required: true
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      options:
+        - Quick start or usage
+        - Supported target or dependency
+        - Validation status
+        - Image publishing or release status
+        - Comparison with another tool
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Include project details, target triple, native dependencies, or commands if relevant.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submit checks
+      options:
+        - label: I checked README.md, SUPPORT.md, and docs/SUPPORT_MATRIX.md for an existing answer.
+          required: true

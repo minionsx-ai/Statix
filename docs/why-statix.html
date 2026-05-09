@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Why Statix</title>
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Build notes: how Statix differs from muslrust and cross for native-heavy Rust musl static builds.">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="site.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <img src="logo.svg" alt="Statix" class="brand-mark">
+      </a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="#positioning">Positioning</a>
+        <a href="#comparison">Comparison</a>
+        <a href="#use-cases">Choosing</a>
+        <a href="#limits">Limits</a>
+        <a href="#references">References</a>
+      </nav>
+    </header>
+
+    <main class="article">
+      <section class="hero article-hero">
+        <p class="eyebrow">Build notes</p>
+        <h1>Why another musl build environment?</h1>
+        <p>
+          Not because Rust's musl target is lacking, and not because
+          <code>muslrust</code> or <code>cross</code> are insufficient.
+          The real problem is narrower: once a Rust project starts depending on
+          C/C++, CMake, pkg-config, OpenSSL, libpq, RocksDB, librdkafka, or
+          bindgen/libclang, static musl build failures tend to occur at the
+          boundary between the host toolchain and the target toolchain, not in
+          Rust itself.
+        </p>
+        <div class="hero-actions">
+          <a class="btn primary" href="#comparison">See comparison</a>
+          <a class="btn" href="DESIGN.md">Design notes</a>
+          <a class="btn" href="VALIDATION_TARGETS.md">Validation targets</a>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Summary</h2>
+        <p>
+          Statix should be understood as a conservative native-heavy musl build
+          environment, not a general-purpose Rust CI image and not a replacement
+          for <code>cross</code>. It trades a larger image, slower builds, and
+          fewer targets for a more complete and reproducible
+          <code>x86_64-unknown-linux-musl</code> native dependency path.
+        </p>
+        <dl class="takeaways">
+          <div>
+            <dt>muslrust</dt>
+            <dd>Good for straightforward, lightweight static musl Rust binary builds, especially cloud containers and standalone Linux binaries.</dd>
+          </div>
+          <div>
+            <dt>cross</dt>
+            <dd>Good for multi-target cross build and cross test workflows where the abstraction is a Cargo wrapper over per-target container images.</dd>
+          </div>
+          <div>
+            <dt>Statix</dt>
+            <dd>Good for native-heavy x86_64 musl static builds where the C/C++ toolchain, static libraries, CMake, and LLVM/libclang all need to be locked together.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section id="positioning" class="section">
+        <h2>The problem is not &ldquo;can it musl&rdquo;</h2>
+        <p>
+          A pure Rust CLI usually does not need Statix. In many cases,
+          <code>rustup target add x86_64-unknown-linux-musl</code> followed by a
+          direct build is enough. Once a project introduces a native crate, the
+          failure mode shifts to a different category:
+        </p>
+        <ul class="article-list">
+          <li>Build scripts resolve host glibc tools instead of musl target tools.</li>
+          <li><code>pkg-config</code> resolves host libraries; the problem surfaces only at link time.</li>
+          <li>CMake starts but uses the wrong compiler, sysroot, or linker flags.</li>
+          <li><code>bindgen</code> requires libclang, which comes from the host distribution path.</li>
+          <li>Libraries like OpenSSL, libpq, RocksDB, and librdkafka require a static build, correct link order, and runtime verification.</li>
+          <li>A successful compilation does not mean the binary actually runs in Alpine or a scratch/distroless environment.</li>
+        </ul>
+        <p>
+          Statix targets those boundaries. It does not wrap Cargo commands; it
+          puts the Rust toolchain, musl GCC, static native libraries, CMake,
+          LLVM/clang, libclang path, pkg-config defaults, and CA bundle defaults
+          into one reproducible environment.
+        </p>
+      </section>
+
+      <section id="comparison" class="section">
+        <h2>Differences from muslrust and cross</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>muslrust</th>
+                <th>cross</th>
+                <th>Statix</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Core abstraction</td>
+                <td>A Docker environment for building static musl Rust binaries.</td>
+                <td>A cross build/test wrapper around <code>cargo</code> that selects container images per target.</td>
+                <td>A complete build environment for native-heavy static musl binaries.</td>
+              </tr>
+              <tr>
+                <td>Target coverage</td>
+                <td>Focused on common Linux musl static build paths.</td>
+                <td>Covers a wide range of Linux, Android, BSD, Windows GNU, and embedded targets, with partial QEMU test support.</td>
+                <td>Currently commits only to <code>x86_64-unknown-linux-musl</code>, getting one difficult path right first.</td>
+              </tr>
+              <tr>
+                <td>Native library strategy</td>
+                <td>Ships a small set of common C libraries by default; additional libraries are usually added by downstream derived images.</td>
+                <td>Default images cover the general cross toolchain; complex native libraries typically require a custom target image or configuration extension.</td>
+                <td>Ships and configures zlib, libffi, ncurses, OpenSSL, curl, PostgreSQL/libpq, and other static dependencies by default.</td>
+              </tr>
+              <tr>
+                <td>CMake / libclang</td>
+                <td>Oriented toward a directly usable static Rust build environment; full-musl CMake/libclang is not a core boundary.</td>
+                <td>Can be addressed with a custom image, but that is not the primary value of <code>cross</code> itself.</td>
+                <td>CMake and LLVM/libclang are intentionally source-built and placed on the musl-oriented toolchain path.</td>
+              </tr>
+              <tr>
+                <td>Validation scope</td>
+                <td>Emphasizes producing distributable static binaries.</td>
+                <td>Emphasizes whether a target can cross-compile non-trivial crates and supports testing on some targets.</td>
+                <td>Emphasizes build, static check, Alpine runtime execution, and issue-backed native dependency fixtures.</td>
+              </tr>
+              <tr>
+                <td>Main cost</td>
+                <td>When a native dependency is outside the default library set, downstream must extend the image.</td>
+                <td>Complex native-heavy static musl projects may require maintaining a custom cross image.</td>
+                <td>Larger image, slower builds, fewer targets; these costs are traded for less host/target toolchain mixing.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="use-cases" class="section">
+        <h2>How to choose</h2>
+        <dl class="decision-grid">
+          <div>
+            <dt>Start with the Rust musl target directly</dt>
+            <dd>
+              If the project is primarily pure Rust, or if native dependencies
+              already have a well-established bundled or static path, the
+              official target is usually the simplest option.
+            </dd>
+          </div>
+          <div>
+            <dt>Consider muslrust for lightweight static containers</dt>
+            <dd>
+              If the goal is to produce static Linux binaries quickly and native
+              dependencies stay within its default boundaries,
+              <code>muslrust</code> is a more mature and lighter choice.
+            </dd>
+          </div>
+          <div>
+            <dt>Consider cross for multi-target workflows</dt>
+            <dd>
+              If the core problem is building and testing the same Rust crate
+              for many targets, the abstraction that <code>cross</code> provides
+              is a better fit.
+            </dd>
+          </div>
+          <div>
+            <dt>Consider Statix for native-heavy x86_64 musl</dt>
+            <dd>
+              If failures are concentrated in CMake, libclang, pkg-config,
+              OpenSSL, libpq, RocksDB, librdkafka, C++ runtime linkage, or
+              static PIE linking, Statix is designed for that scenario.
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="section">
+        <h2>The boundaries Statix tries to make explicit</h2>
+        <p>
+          The most difficult aspect of static musl builds is that there are too
+          many paths that appear to compile. A build script may run on the host,
+          a C library may come from a Debian package, a pkg-config file may
+          point to a glibc path, or a Rust target flag may affect only the final
+          link without touching the configure stage of a native dependency.
+        </p>
+        <p>
+          The design choice in Statix is to make those boundaries explicit: build
+          the musl GCC toolchain first, then use it to build static C/C++
+          libraries and build tools; direct Cargo, the linker, pkg-config,
+          OpenSSL, libpq, CMake, and libclang to the same musl-oriented path by
+          default; then verify the result with <code>file</code>, <code>ldd</code>,
+          and Alpine runtime execution.
+        </p>
+        <p>
+          This is not the minimal approach, but it is an explainable one. For
+          small projects it may be too heavy; for native-heavy projects it
+          eliminates the environmental assumptions that are difficult to express
+          in a single <code>cargo build --target ...</code> line in a README.
+        </p>
+      </section>
+
+      <section id="limits" class="section">
+        <h2>Do not overstate it</h2>
+        <p>
+          Statix is still an early-stage tooling project. Its current advantage
+          is a clear full-musl division of responsibility and reproducible
+          validation, not ecosystem coverage, build speed, or image size.
+        </p>
+        <ul class="article-list">
+          <li>It does not replace the multi-target capability of <code>cross</code>.</li>
+          <li>It should not be used as a minimal runtime image.</li>
+          <li>It cannot guarantee that every upstream project is musl-compatible without patches.</li>
+          <li>Its default path is conservative, so build cost is higher than lightweight images.</li>
+          <li>Validation should continue to rely on small fixtures and issue-backed native dependency cases, not a single large workload.</li>
+        </ul>
+      </section>
+
+      <section id="references" class="section">
+        <h2>References</h2>
+        <ul class="link-list">
+          <li><a href="https://github.com/clux/muslrust">clux/muslrust</a></li>
+          <li><a href="https://github.com/cross-rs/cross">cross-rs/cross</a></li>
+          <li><a href="DESIGN.md">Statix design</a></li>
+          <li><a href="SUPPORT_MATRIX.md">Support matrix</a></li>
+          <li><a href="VALIDATION_TARGETS.md">Validation targets</a></li>
+          <li><a href="index.html">Project page</a></li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <span>MIT licensed.</span>
+      <a href="index.html">Project page</a>
+      <a href="https://github.com/minionsx-ai/Statix">Repository</a>
+    </footer>
+  </body>
+</html>

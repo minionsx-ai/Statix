@@ -1,0 +1,9 @@
+[package]
+name = "rusqlite-bundled"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }

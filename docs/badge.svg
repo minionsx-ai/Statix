@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 22">
+  <title>Statix</title>
+  <defs><clipPath id="c"><rect width="104" height="22" rx="4"/></clipPath></defs>
+
+  <rect width="104" height="22" rx="4" fill="#1E293B"/>
+  <g clip-path="url(#c)">
+    <!-- Left: orange section with Sx monogram -->
+    <rect width="30" height="22" fill="#CE422B"/>
+    <text x="15" y="15.5"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="11" font-weight="800" fill="white"
+      text-anchor="middle" dominant-baseline="auto">Sx</text>
+
+    <!-- Divider -->
+    <rect x="30" width="1" height="22" fill="#0F172A" opacity="0.3"/>
+
+    <!-- Right: project name -->
+    <text x="68" y="15.5"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="11.5" font-weight="700" fill="#F4F4F5"
+      text-anchor="middle" dominant-baseline="auto">Statix</text>
+  </g>
+</svg>

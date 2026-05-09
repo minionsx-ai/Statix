@@ -1,0 +1,429 @@
+name: Release
+
+# Trigger on version tags (e.g. v0.1.0) or manually.
+# Manual dispatch is useful for testing the build pipeline without creating a
+# public release or consuming a version tag.
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      push_image:
+        description: 'Push image to GHCR (skipped by default on manual runs)'
+        type: boolean
+        default: false
+
+# ---------------------------------------------------------------------------
+# Runner note
+#
+# The full image build (GCC + CMake + LLVM from source) takes roughly 2–3 h
+# on a 4-core machine.  GitHub's hosted ubuntu-latest runner currently
+# provides 4 vCPU / 16 GB RAM, which is sufficient but leaves little headroom.
+#
+# For faster or more reliable builds, point runs-on at a self-hosted runner:
+#
+#   runs-on: [self-hosted, linux, x64]
+#
+# The smoke-test job only runs the pre-built image and can safely stay on the
+# hosted runner regardless of which runner builds the image.
+# ---------------------------------------------------------------------------
+
+jobs:
+
+  # ── 1. Build image ────────────────────────────────────────────────────────
+  build:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: read
+      packages: write   # ghcr.io push
+    outputs:
+      digest: ${{ steps.image-digest.outputs.value }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME || github.actor }}
+          password: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
+
+      # Derive image tags from the git tag (semver) or branch name.
+      # For v0.1.0 this produces: v0.1.0, 0.1.0, 0.1, latest.
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/statix
+          tags: |
+            type=semver,pattern={{raw}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Detect reusable published image
+        id: reusable-image
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+
+          current="${GITHUB_REF_NAME}"
+          previous="$(
+            git tag --sort=-v:refname \
+              | grep -E '^v[0-9]+[.][0-9]+[.][0-9]+$' \
+              | grep -v "^${current}$" \
+              | head -n 1 || true
+          )"
+          echo "previous=${previous}" >> "$GITHUB_OUTPUT"
+
+          if [ -n "${previous}" ] && git diff --quiet "${previous}" "${GITHUB_SHA}" -- Dockerfile; then
+            echo "reuse=true" >> "$GITHUB_OUTPUT"
+            echo "Dockerfile is unchanged since ${previous}; reusing the published image."
+          else
+            echo "reuse=false" >> "$GITHUB_OUTPUT"
+            echo "Dockerfile changed or no previous release tag exists; building a new image."
+          fi
+
+      # Registry-based buildcache persists between runs and is not subject to
+      # the 10 GB GitHub Actions cache eviction limit.  The first build will
+      # be slow; subsequent builds of unchanged layers are fast.
+      - name: Check GHCR package access
+        env:
+          GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/statix
+          GHCR_REPOSITORY: ${{ github.repository_owner }}/statix
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME || github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          bearer_json="$(curl --proto '=https' --tlsv1.2 -fsSL \
+            -u "${GHCR_USERNAME}:${GHCR_TOKEN}" \
+            "https://ghcr.io/token?service=ghcr.io&scope=repository:${GHCR_REPOSITORY}:pull,push")"
+          bearer="$(python3 -c 'import json, sys; print(json.load(sys.stdin)["token"])' <<< "${bearer_json}")"
+
+          status="$(curl --proto '=https' --tlsv1.2 -sS -o /tmp/ghcr-probe-body -w '%{http_code}' -I \
+            -H "Authorization: Bearer ${bearer}" \
+            -H 'Accept: application/vnd.oci.image.index.v1+json' \
+            "https://ghcr.io/v2/${GHCR_REPOSITORY}/manifests/buildcache" || true)"
+
+          case "${status}" in
+            200|404)
+              echo "GHCR package access check passed for ${GHCR_IMAGE}."
+              ;;
+            401|403)
+              echo "::error::${GHCR_IMAGE} is not writable with the configured GHCR credentials. For first publish, add a temporary GHCR_PAT secret with write:packages/read:packages. After the package exists, add minionsx-ai/Statix under Manage Actions access with Write permission, then remove GHCR_PAT to return to GITHUB_TOKEN."
+              cat /tmp/ghcr-probe-body || true
+              exit 1
+              ;;
+            *)
+              echo "::warning::Unexpected GHCR access probe status ${status}; continuing to build."
+              cat /tmp/ghcr-probe-body || true
+              ;;
+          esac
+
+      - name: Build and push image
+        id: push
+        if: ${{ !startsWith(github.ref, 'refs/tags/') || steps.reusable-image.outputs.reuse != 'true' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ startsWith(github.ref, 'refs/tags/') || inputs.push_image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=ghcr.io/${{ github.repository_owner }}/statix:buildcache
+            type=registry,ref=ghcr.io/${{ github.repository_owner }}/statix:latest
+          cache-to:   type=registry,ref=ghcr.io/${{ github.repository_owner }}/statix:buildcache,mode=max
+
+      - name: Retag previous image
+        if: ${{ startsWith(github.ref, 'refs/tags/') && steps.reusable-image.outputs.reuse == 'true' }}
+        env:
+          SOURCE_IMAGE: ghcr.io/${{ github.repository_owner }}/statix:${{ steps.reusable-image.outputs.previous }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t tags < <(printf '%s\n' "${TAGS}" | awk 'NF && !seen[$0]++')
+          args=()
+          for tag in "${tags[@]}"; do
+            args+=(--tag "${tag}")
+          done
+
+          docker buildx imagetools create "${args[@]}" "${SOURCE_IMAGE}"
+
+      - name: Set image digest output
+        id: image-digest
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/statix:${{ github.ref_name }}
+          PUSH_DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          digest="${PUSH_DIGEST}"
+          if [ -z "${digest}" ]; then
+            digest="$(docker buildx imagetools inspect "${IMAGE}" | awk '$1 == "Digest:" {print $2; exit}')"
+          fi
+
+          if [ -z "${digest}" ]; then
+            echo "::error::Could not resolve digest for ${IMAGE}."
+            exit 1
+          fi
+
+          echo "value=${digest}" >> "$GITHUB_OUTPUT"
+
+  # ── 2. P0 smoke tests ─────────────────────────────────────────────────────
+  # Runs the three fastest P0 targets against the just-published image.
+  # reqwest-rustls is excluded here because it makes a live HTTPS request
+  # that can fail in restricted CI network environments.
+  smoke-test:
+    name: P0 smoke tests
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME || github.actor }}
+          password: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        env:
+          STATIX_IMAGE: ghcr.io/${{ github.repository_owner }}/statix@${{ needs.build.outputs.digest }}
+        run: docker pull "${STATIX_IMAGE}"
+
+      - name: Run P0 smoke tests
+        env:
+          STATIX_IMAGE: ghcr.io/${{ github.repository_owner }}/statix@${{ needs.build.outputs.digest }}
+        run: |
+          for target in \
+            examples/hello-static \
+            examples/tokio-cli \
+            examples/crypto-signing \
+            examples/rusqlite-bundled; do
+            printf '\n=== %s ===\n' "$target"
+            STATIX_IMAGE="$STATIX_IMAGE" scripts/validate-target.sh "$target"
+          done
+
+  # ── 3. Publish GitHub Release ─────────────────────────────────────────────
+  # Create the public GitHub Release only after the pushed image passes P0
+  # smoke tests.
+  publish-release:
+    name: Publish GitHub Release
+    needs:
+      - build
+      - smoke-test
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Extract version strings directly from Dockerfile ARGs so the release
+      # notes always match the actual image, even if this file is out of date.
+      - name: Extract component versions
+        id: versions
+        run: |
+          read_arg() { grep "^ARG ${1}=" Dockerfile | cut -d= -f2; }
+          {
+            echo "rust=$(read_arg RUST_VERSION)"
+            echo "gcc=$(read_arg GCC_VERSION)"
+            echo "musl=$(read_arg MUSL_VERSION)"
+            echo "openssl=$(read_arg OPENSSL_VERSION)"
+            echo "cmake=$(read_arg CMAKE_REF)"
+            echo "llvm=$(read_arg LLVM_REF)"
+          } >> "$GITHUB_OUTPUT"
+
+      # Release notes = CHANGELOG section for this tag
+      #                 + auto-generated component versions and image digest.
+      # The CHANGELOG section is extracted by matching ## [X.Y.Z] headings so
+      # the notes stay in sync with the repo without any manual copying.
+      - name: Write release notes
+        env:
+          TAG:     ${{ github.ref_name }}
+          DIGEST:  ${{ needs.build.outputs.digest }}
+          RUST:    ${{ steps.versions.outputs.rust }}
+          GCC:     ${{ steps.versions.outputs.gcc }}
+          MUSL:    ${{ steps.versions.outputs.musl }}
+          OPENSSL: ${{ steps.versions.outputs.openssl }}
+          CMAKE:   ${{ steps.versions.outputs.cmake }}
+          LLVM:    ${{ steps.versions.outputs.llvm }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, re, textwrap
+          e = os.environ
+          tag, digest = e["TAG"], e["DIGEST"]
+          owner = "${{ github.repository_owner }}"
+
+          # Extract the section for this tag from CHANGELOG.md.
+          # Matches ## [0.1.0] or ## [0.1.0] - date, stops at next ## heading.
+          ver = tag.lstrip("v")
+          changelog = open("CHANGELOG.md").read()
+          pattern = rf'## \[{re.escape(ver)}\][^\n]*\n(.*?)(?=\n## |\Z)'
+          m = re.search(pattern, changelog, re.DOTALL)
+          changelog_body = m.group(1).strip() if m else \
+              f"_No CHANGELOG entry found for {tag}._"
+
+          d = {k: e[k.upper()] for k in
+               ["rust", "gcc", "musl", "openssl", "cmake", "llvm"]}
+
+          notes = textwrap.dedent(f"""\
+              {changelog_body}
+
+              ## Component versions
+
+              | Component | Version |
+              | --- | --- |
+              | Rust | `{d["rust"]}-x86_64-unknown-linux-musl` |
+              | GCC (musl-cross-make) | `{d["gcc"]}` |
+              | musl libc | `{d["musl"]}` |
+              | OpenSSL | `{d["openssl"]}` |
+              | CMake | `{d["cmake"]}` |
+              | LLVM / clang | `{d["llvm"]}` |
+
+              ## Container image
+
+              ```
+              ghcr.io/{owner}/statix:{tag}
+              ```
+
+              Image digest: `{digest}`
+
+              Pin the digest in production CI for fully reproducible builds:
+
+              ```sh
+              docker pull ghcr.io/{owner}/statix@{digest}
+              ```
+
+              ## Quick start
+
+              ```sh
+              docker run --rm -it \\
+                -v "$PWD:/workspace" -w /workspace \\
+                ghcr.io/{owner}/statix:{tag}
+
+              cargo build --release --target x86_64-unknown-linux-musl
+              ```
+          """)
+          with open("/tmp/release-notes.md", "w") as f:
+              f.write(notes)
+          PYEOF
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" \
+              --title "Statix $GITHUB_REF_NAME" \
+              --notes-file /tmp/release-notes.md \
+              --draft=false \
+              --prerelease=false \
+              --latest \
+              --verify-tag
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "Statix $GITHUB_REF_NAME" \
+              --notes-file /tmp/release-notes.md \
+              --latest \
+              --verify-tag
+          fi
+
+  # ── 4. Update public release metadata ────────────────────────────────────
+  # Keep README.md and the GitHub Pages source aligned with the published tag
+  # and immutable image digest, without pushing directly to protected main.
+  update-release-metadata:
+    name: Open release metadata PR
+    needs:
+      - build
+      - smoke-test
+      - publish-release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          token: ${{ secrets.RELEASE_PR_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Update release metadata
+        run: |
+          python3 scripts/update-release-metadata.py \
+            --version "${GITHUB_REF_NAME}" \
+            --digest "${{ needs.build.outputs.digest }}" \
+            --repo "${{ github.repository }}" \
+            --image "ghcr.io/${{ github.repository_owner }}/statix"
+
+      - name: Open or update metadata PR
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN || secrets.GITHUB_TOKEN }}
+          BRANCH: codex/release-metadata-${{ github.ref_name }}
+          RELEASE_IMAGE: ghcr.io/${{ github.repository_owner }}/statix@${{ needs.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- README.md docs/index.html; then
+            echo "Release metadata is already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "${BRANCH}"
+          git add README.md docs/index.html
+          git commit -m "docs: update release metadata for ${GITHUB_REF_NAME}"
+          git push --force-with-lease origin "${BRANCH}"
+
+          title="docs: update release metadata for ${GITHUB_REF_NAME}"
+          body="$(mktemp)"
+          cat > "${body}" <<EOF
+          Updates README.md and the GitHub Pages source after the tag-driven
+          release completed successfully.
+
+          - Release: ${GITHUB_REF_NAME}
+          - Image: ${RELEASE_IMAGE}
+          - Digest: ${{ needs.build.outputs.digest }}
+          - Triggering run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
+
+          existing_url="$(gh pr list --head "${BRANCH}" --state open --json url --jq '.[0].url // ""')"
+          if [ -n "${existing_url}" ]; then
+            if gh pr edit "${existing_url}" --title "${title}" --body-file "${body}"; then
+              echo "Updated ${existing_url}"
+            else
+              echo "::warning::Updated ${BRANCH}, but GitHub blocked updating the metadata PR. Enable Actions pull-request creation in repository settings or set a RELEASE_PR_TOKEN secret with Contents and Pull requests write access."
+            fi
+          else
+            if ! gh pr create --base main --head "${BRANCH}" --title "${title}" --body-file "${body}"; then
+              echo "::warning::Pushed ${BRANCH}, but GitHub blocked creating the metadata PR. Enable Actions pull-request creation in repository settings or set a RELEASE_PR_TOKEN secret with Contents and Pull requests write access."
+              echo "::notice::Open it manually: ${{ github.server_url }}/${{ github.repository }}/pull/new/${BRANCH}"
+            fi
+          fi

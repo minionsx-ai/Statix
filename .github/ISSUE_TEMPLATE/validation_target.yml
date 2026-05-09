@@ -1,0 +1,77 @@
+name: Validation target
+description: Propose or report a reproducible Statix validation target.
+title: "[Validation]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for issue-backed validation cases that should be tracked in docs/VALIDATION_TARGETS.md.
+        A good target represents a real musl/native dependency failure mode and has a clear build plus runtime verification path.
+  - type: dropdown
+    id: request_type
+    attributes:
+      label: Request type
+      options:
+        - Propose a new validation target
+        - Report validation results for an existing target
+        - Update a target's status or reproduction steps
+    validations:
+      required: true
+  - type: input
+    id: target_name
+    attributes:
+      label: Target name
+      placeholder: rust-rocksdb-demo, diesel-postgres, rdkafka-vendored-ssl
+    validations:
+      required: true
+  - type: textarea
+    id: issue_context
+    attributes:
+      label: Public issue context
+      description: Link the upstream issue, project discussion, or reproducible report that makes this target useful.
+    validations:
+      required: true
+  - type: textarea
+    id: validation_point
+    attributes:
+      label: What this validates
+      description: Name the native dependency, build tool, linker behavior, runtime behavior, or target triple being exercised.
+    validations:
+      required: true
+  - type: input
+    id: upstream
+    attributes:
+      label: Upstream repository and commit
+      placeholder: https://github.com/example/project @ abc1234
+  - type: textarea
+    id: commands
+    attributes:
+      label: Build and verification commands
+      description: Include cargo build, file, ldd, Alpine runtime, or scripts/validate-target.sh commands.
+      render: sh
+    validations:
+      required: true
+  - type: textarea
+    id: expected_result
+    attributes:
+      label: Expected result
+      description: Describe what should count as build passed, static check passed, runtime passed, blocked, or manual.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Current evidence
+      description: Paste logs, binary verification output, image digest, or failure output if you have already run it.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submit checks
+      options:
+        - label: This target is grounded in a real project or public failure mode.
+          required: true
+        - label: I included a reproducible command or explained what is still missing.
+          required: true

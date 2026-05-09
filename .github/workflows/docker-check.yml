@@ -1,0 +1,29 @@
+name: Dockerfile
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  dockerfile-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check shell scripts
+        run: |
+          bash -n scripts/check-docs-sync.sh scripts/validate-target.sh examples/build-snarkos.sh
+          examples/build-snarkos.sh --dry-run
+          scripts/validate-target.sh --dry-run examples/hello-static
+
+      - name: Check documentation sync
+        run: scripts/check-docs-sync.sh
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Check Dockerfile
+        run: docker buildx build --check .
