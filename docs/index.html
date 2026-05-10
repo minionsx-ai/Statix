@@ -46,9 +46,9 @@
         <h2>Public status</h2>
         <!-- release-status:start -->
         <p>
-          The source repository and project page are public. The GHCR image is still
-          treated as pending until the tag-driven release workflow finishes and the
-          package is pullable without maintainer credentials.
+          The source repository, project page, and GHCR image are public. The release
+          image below was published by the tag-driven workflow after P0 smoke tests
+          passed.
         </p>
         <dl class="status-grid">
           <div>
@@ -65,7 +65,7 @@
           </div>
           <div>
             <dt>Container image</dt>
-            <dd><span class="badge pending">pending</span> GHCR public pull verification</dd>
+            <dd><span class="badge pass">published</span> <code>ghcr.io/minionsx-ai/statix:v0.1.0</code></dd>
           </div>
         </dl>
         <!-- release-status:end -->
@@ -73,13 +73,11 @@
 
       <section id="release" class="section">
         <!-- release-quickstart:start -->
-        <h2>Quick start from source</h2>
-        <pre><code>git clone https://github.com/minionsx-ai/Statix.git
-cd Statix
-docker build -t statix:local .
+        <h2>Quick start from GHCR</h2>
+        <pre><code>docker pull ghcr.io/minionsx-ai/statix:v0.1.0
 
 docker run --rm -it -v "$PWD:/workspace" -w /workspace \
-  statix:local
+  ghcr.io/minionsx-ai/statix:v0.1.0
 
 cargo build --release --target x86_64-unknown-linux-musl</code></pre>
         <dl class="meta">
@@ -89,11 +87,11 @@ cargo build --release --target x86_64-unknown-linux-musl</code></pre>
           </div>
           <div>
             <dt>Image</dt>
-            <dd><code>statix:local</code> until GHCR is public-pull verified</dd>
+            <dd><code>ghcr.io/minionsx-ai/statix:v0.1.0</code></dd>
           </div>
           <div>
             <dt>Digest</dt>
-            <dd>Published image digest pending release workflow completion.</dd>
+            <dd><code>ghcr.io/minionsx-ai/statix@sha256:0094c4db34228b652ea854d4daf5cb7e78915340cd5599c334d110626e38f9d2</code></dd>
           </div>
           <div>
             <dt>Target</dt>

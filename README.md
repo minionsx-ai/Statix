@@ -42,12 +42,15 @@ The current focus is:
 <!-- release-metadata:start -->
 The latest source release is [`v0.1.0`](https://github.com/minionsx-ai/Statix/releases/tag/v0.1.0).
 
-The matching GHCR image is still pending public pull verification. Until the
-release workflow publishes a pullable image, build the image locally:
+Release images are published to GHCR from version tags after the release
+workflow builds the image and the P0 smoke tests pass.
 
 ```sh
-docker build -t statix:local .
+docker pull ghcr.io/minionsx-ai/statix:v0.1.0
+docker pull ghcr.io/minionsx-ai/statix@sha256:0094c4db34228b652ea854d4daf5cb7e78915340cd5599c334d110626e38f9d2
 ```
+
+For reproducible CI, prefer the digest form.
 <!-- release-metadata:end -->
 
 ## What Statix provides
